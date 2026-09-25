@@ -1,0 +1,60 @@
+# 校准帧重建包服务 —— 可配置 Compose
+#
+# 常用操作：
+#   HOST_PORT=9090 docker compose up -d --build app   # 仅启动服务，宿主端口可配置
+#   docker compose run --rm verify                    # 执行 verify 验收服务
+#   docker compose up --build                         # 启动 app，并运行 verify；
+#                                                     # verify 完成后以验收码退出
+#
+# 宿主访问端口由 HOST_PORT 控制（默认 8080），容器内固定监听 8080。
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: calibration-store:latest
+    ports:
+      - "${HOST_PORT:-8080}:8080"
+    environment:
+      BIND_HOST: 0.0.0.0
+      BIND_PORT: "8080"
+      DATA_DIR: /data
+    volumes:
+      - calstore-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - python3
+        - -c
+        - |
+          import json, os, sys, urllib.request
+          url = 'http://127.0.0.1:%s/health' % os.environ.get('BIND_PORT', '8080')
+          d = json.load(urllib.request.urlopen(url, timeout=2))
+          sys.exit(0 if d.get('objects_writable') else 1)
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 3s
+
+  # verify 服务：交错执行后端代码测试、前后端构建与 API/HTTP 冒烟，
+  # 完成后退出，退出码按位报告业务验收状态（见 scripts/verify.py 头注）。
+  # 先在容器内对本地子进程做全套冒烟（含 SIGKILL 故障重启收敛），
+  # 再通过 REMOTE_SMOKE_URL 对已编排上线的 app 做远程冒烟。
+  verify:
+    image: calibration-store:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python3", "scripts/verify.py"]
+    environment:
+      REMOTE_SMOKE_URL: "http://app:8080"
+      PYTHONPATH: /app/backend
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  calstore-data:

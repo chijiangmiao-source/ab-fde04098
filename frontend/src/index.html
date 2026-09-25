@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>校准帧重建包复核台</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header>
+    <h1>校准帧重建包复核台</h1>
+    <div id="health" class="health">健康检查中…</div>
+  </header>
+
+  <main>
+    <section class="panel" id="package-list-panel">
+      <div class="panel-head">
+        <h2>重建包目录</h2>
+        <div class="row">
+          <input id="new-package-name" placeholder="新包名，如 beamline-a-2026" />
+          <button id="btn-new-package">新建/打开</button>
+          <button id="btn-refresh">刷新摘要</button>
+          <button id="btn-gc" class="warn">回收零引用块</button>
+        </div>
+      </div>
+      <table id="package-table">
+        <thead>
+          <tr><th>包</th><th>修订号</th><th>块数</th><th>操作</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <p class="hint">
+        说明：块按 SHA-256 内容寻址并在包间去重。撤下一个包时，只要仍有其他存活包引用，
+        块会被保留并可读取；撤下最后一个引用后，该块才可被回收，回收后接口不再可读。
+      </p>
+    </section>
+
+    <section class="panel" id="editor-panel" hidden>
+      <div class="panel-head">
+        <h2>目录编辑：<span id="editor-package"></span></h2>
+        <div class="row">
+          <span>当前修订号：<b id="editor-revision"></b></span>
+          <button id="btn-reload">放弃修改并重载</button>
+        </div>
+      </div>
+
+      <h3>目录中的块（保留 / 撤下）</h3>
+      <ul id="block-list" class="block-list"></ul>
+
+      <h3>新增块文本</h3>
+      <textarea id="new-block-text" rows="4"
+        placeholder="粘贴校准帧文本块；相同内容在全局只存一份（SHA-256 去重）"></textarea>
+      <div class="row">
+        <span id="new-block-digest" class="mono"></span>
+        <button id="btn-stage-add">加入待提交集合</button>
+      </div>
+
+      <h3>提交说明</h3>
+      <input id="commit-reason" placeholder="本次修订摘要（可选）" />
+      <div class="row">
+        <button id="btn-commit" class="primary">提交修订</button>
+        <span id="commit-result" class="mono"></span>
+      </div>
+      <div id="conflict-banner" class="banner conflict" hidden></div>
+    </section>
+
+    <section class="panel" id="inspector-panel" hidden>
+      <div class="panel-head">
+        <h2>块检视</h2>
+        <button id="btn-close-inspector">关闭</button>
+      </div>
+      <div id="inspector-body"></div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

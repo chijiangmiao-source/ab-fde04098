@@ -13,3 +13,7 @@ __pycache__/
 .yarn-cache/
 *.pyc
 *.pyo
+
+# 本地数据卷
+/data/
+backend/static/
