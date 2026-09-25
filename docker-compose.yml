@@ -1,0 +1,53 @@
+# Configurable deployment + one-shot acceptance gate.
+#
+# Host access port is configurable via APP_PORT (defaults to 8080), and the
+# in-container listen port via INTERNAL_PORT. Persistent data lives on the
+# named volume `calblock-data`.
+#
+#   APP_PORT=9090 docker compose up -d --build app
+#   docker compose run --build verify      # exits 0/1 with acceptance status
+#
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.app
+    image: calibration-blocks:app
+    environment:
+      DATA_DIR: /data
+      STATIC_DIR: /app/static
+      # Deployment entrypoint host/access port is configurable.
+      HOST: 0.0.0.0
+      PORT: ${INTERNAL_PORT:-8080}
+    ports:
+      # host:container — APP_PORT is the host access port.
+      - "${APP_PORT:-8080}:${INTERNAL_PORT:-8080}"
+    volumes:
+      - calblock-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "/usr/local/bin/healthcheck.py"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  # Executable acceptance service: interleaved code tests, frontend/backend
+  # builds and API/HTTP smoke around the three business outcomes. It finishes
+  # and reports the acceptance result via its exit code.
+  verify:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.verify
+    image: calibration-blocks:verify
+    environment:
+      # Smoke talks to a freshly spawned subprocess inside this container.
+      SMOKE_HOST: 127.0.0.1
+      SMOKE_PORT: "8099"
+    # Runs scripts/verify.sh then exits; `docker compose run verify` returns
+    # the acceptance exit code.
+    command: ["bash", "scripts/verify.sh"]
+    restart: "no"
+
+volumes:
+  calblock-data:

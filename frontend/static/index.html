@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>同步辐射校准块 · 重建包目录</title>
+  <link rel="stylesheet" href="/app.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>同步辐射成像组 · 校准帧重建包</h1>
+    <div id="health" class="health" title="对象目录可写性与完整性">
+      <span id="health-dot" class="dot"></span>
+      <span id="health-text">连接中…</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel">
+      <h2>新增去重文本块</h2>
+      <p class="hint">块按 SHA-256 内容寻址；相同内容只存一份，由引用计数决定保留。</p>
+      <textarea id="block-content" rows="4" placeholder="粘贴校准帧文本（暗帧/平场/几何参数…）"></textarea>
+      <div class="row">
+        <input id="block-name" type="text" placeholder="块显示名（可选）" />
+        <button id="upload-btn" class="primary">上传并暂存为「新增」</button>
+      </div>
+      <div id="upload-result" class="result"></div>
+    </section>
+
+    <section class="panel">
+      <h2>重建包目录</h2>
+      <p class="hint">在卡片中对块执行「保留」或「撤下」，所有暂存改动在下方一次提交（带修订号）。</p>
+      <div class="row">
+        <input id="pkg-name" type="text" placeholder="重建包目录名，如 beamline-a-2026q3" />
+        <button id="create-pkg-btn">以此目录为提交目标</button>
+      </div>
+      <div id="packages" class="packages"></div>
+    </section>
+
+    <section class="panel staged">
+      <h2>待提交改动 <span id="rev-badge" class="rev-badge"></span></h2>
+      <div class="row">
+        <label>目标目录
+          <input id="target-pkg" type="text" placeholder="目录名" />
+        </label>
+        <label>基于修订
+          <input id="base-rev" type="number" min="0" style="width:6rem" />
+        </label>
+        <label class="grow">备注
+          <input id="note" type="text" placeholder="复核说明（可选）" />
+        </label>
+      </div>
+      <ul id="staged-list" class="staged-list"></ul>
+      <div class="row">
+        <button id="submit-btn" class="primary">提交修订</button>
+        <button id="clear-staged-btn">清空暂存</button>
+        <button id="gc-mark-btn">GC：标记候选</button>
+        <button id="gc-sweep-btn">GC：执行清理</button>
+        <button id="gc-auto-btn" class="warn">GC：标记并清理</button>
+      </div>
+      <div id="action-result" class="result"></div>
+    </section>
+
+    <section class="panel two-col">
+      <div>
+        <h2>摘要与引用统计</h2>
+        <div id="stats"></div>
+      </div>
+      <div>
+        <h2>修订历史</h2>
+        <ol id="revisions" class="revisions"></ol>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>块保留缘由查询</h2>
+      <div class="row">
+        <input id="query-sha" type="text" placeholder="输入或粘贴 SHA-256" />
+        <button id="query-btn">查询可读性与保留缘由</button>
+      </div>
+      <pre id="block-detail" class="block-detail">在任意块上点击「查看缘由」也会在此展示。</pre>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

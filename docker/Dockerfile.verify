@@ -1,0 +1,28 @@
+# syntax=docker/dockerfile:1
+# Self-contained acceptance image: carries both Node (frontend build) and
+# Python (backend tests + live HTTP smoke). The container runs scripts/verify.sh
+# and exits with the acceptance status code.
+
+FROM node:20-bookworm-slim AS node-src
+
+FROM python:3.11-slim-bookworm
+# Bring the Node toolchain over from the official image (both bookworm-slim).
+COPY --from=node-src /usr/local/bin/node  /usr/local/bin/node
+COPY --from=node-src /usr/local/bin/npm   /usr/local/bin/npm
+COPY --from=node-src /usr/local/bin/npx   /usr/local/bin/npx
+COPY --from=node-src /usr/local/lib/node_modules /usr/local/lib/node_modules
+
+WORKDIR /workspace
+COPY backend/requirements.txt backend/requirements.txt
+RUN pip install --no-cache-dir -r backend/requirements.txt
+
+COPY . .
+# Pre-install so `docker compose run verify` works without network at runtime.
+RUN cd frontend && npm install --no-audit --no-fund && npx tsc --noEmit && npm run build
+
+ENV PYTHONPATH=/workspace/backend \
+    SMOKE_PORT=8099
+
+# One-shot: interleaved code tests, both builds and API/HTTP smoke, then exit.
+# The exit code (0 = acceptance passed) is reported to Compose.
+CMD ["bash", "scripts/verify.sh"]
